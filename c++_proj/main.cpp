@@ -93,5 +93,7 @@ int main(int argc, char *argv[])
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     cout << "Execution time for "<< numThreads <<" threads was " << diff.count() << " ms. \n";
 
+    q.printQ();
+
     exit(0);
 }
