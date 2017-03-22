@@ -43,18 +43,19 @@ void *threadWork(void *vargp)
         if(randoms[currJob] == ENQ)
         {
           //Allocate new node if no nodes exist
-          if(head == -1)//stack empty
-          {
-            localNodes[++head] = new node;
-          }
-          q.add(localNodes[head--],rand() % 100);
+          // if(head == -1)//stack empty
+          // {
+          //   localNodes[++head] = new node;
+          // }
+          q.add(newNode(),rand() % 100);
+          // q.add(localNodes[head--],rand() % 100);
         }
         else
         {
           tempNode = q.remove();
           // //Put node back on local stack
-          if(tempNode != NULL)
-            localNodes[++head] = tempNode;
+          // if(tempNode !=NULL && tempNode->ptr() != NULL)
+          //   localNodes[++head] = tempNode;
         }
         currJob = jobsDone++;
     }
@@ -66,7 +67,7 @@ void *threadWork(void *vargp)
 // 3 - Percent of jobs that are enq (0-1, rest are deqs)
 int main(int argc, char *argv[])
 {
-    //Initialization
+    // //Initialization
     numThreads = atoi(argv[1]);
     numJobs = atoi(argv[2]);
     percentEnq = atof(argv[3]);
