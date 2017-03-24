@@ -34,28 +34,26 @@ int* setupRandoms(int numRandoms, double percentEnq)
 
 void *threadWork(void *vargp)
 {
-    int currJob = jobsDone++, head=-1;
+    int currJob = jobsDone++;
     long threadID = (long)vargp;
-    node *localNodes[numThreads], *tempNode;
+    localList* localNodes = new localList;
+    node *tempNode;
 
     while(currJob < numJobs)
     {
         if(randoms[currJob] == ENQ)
         {
           //Allocate new node if no nodes exist
-          // if(head == -1)//stack empty
-          // {
-          //   localNodes[++head] = new node;
-          // }
-          q.add(newNode(),rand() % 100);
-          // q.add(localNodes[head--],rand() % 100);
+          tempNode = localNodes->remove();
+          if(tempNode == NULL)//list empty
+          {
+            tempNode = newNode();
+          }
+          q.add(tempNode,rand() % 100);
         }
         else
         {
-          tempNode = q.remove();
-          // //Put node back on local stack
-          // if(tempNode !=NULL && tempNode->ptr() != NULL)
-          //   localNodes[++head] = tempNode;
+          q.remove(localNodes);
         }
         currJob = jobsDone++;
     }
@@ -94,7 +92,7 @@ int main(int argc, char *argv[])
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     cout << "Execution time for "<< numThreads <<" threads was " << diff.count() << " ms. \n";
 
-    q.printQ();
+    // q.printQ();
 
     exit(0);
 }

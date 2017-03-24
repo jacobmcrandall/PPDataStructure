@@ -42,7 +42,7 @@ class BasketsQueue
             next = tail->ptr()->next.load();
             while((getTag(next) == getTag(tail)+1) && !getDeleteFlag(next))
             {
-              // printf("TODO BACKOFF_SCHEME HERE\n");
+              //If implementing backoff scheme do it here
               nd->next.store(next);
               if(tail->ptr()->next.compare_exchange_strong(next, flagAndTag(nd, false, getTag(tail) + 1)))
                 return true;
@@ -61,7 +61,7 @@ class BasketsQueue
       }
     }
 
-    node* remove()
+    node* remove(localList* removeToList)
     {
       node *head, *tail, *next, *iter, *ret;
       int hops = 0;
@@ -96,36 +96,33 @@ class BasketsQueue
             if(this->head != head)
               continue;
             else if(iter->ptr() == tail->ptr())
-              freeChain(head,iter);
+              freeChain(head,iter,removeToList);
             else
             {
               ret = next->ptr();
               if(iter->ptr()->next.compare_exchange_strong(next, flagAndTag(next->ptr(),true,getTag(next) + 1)))
               {
                 if(hops >= MAX_HOPS)
-                  freeChain(head,next);
+                  freeChain(head,next,removeToList);
                 return ret;
               }
-              // printf("TODO BACKOFF_SCHEME HERE\n");
+              //If implementing backoff scheme do it here
             }
           }
         }
       }
     }
 
-    void freeChain(node* head, node* newHead)
+    void freeChain(node* head, node* newHead, localList* removeToList)
     {
       node* next;
-      int count = 0;
       if(this->head.compare_exchange_strong(head, flagAndTag(newHead->ptr(), 0 , getTag(head) + 1)));
       {
         //Might need to investiage why we had to add head->ptr() != NULL
         while (head->ptr() != NULL && head->ptr() != newHead->ptr())
         {
-          count++;
           next = head->ptr()->next.load();
-          // reclaim_node(head->ptr());
-          // delete head->ptr();
+          removeToList->add(head->ptr()); //aka reclaimNode
           head = next;
         }
       }
