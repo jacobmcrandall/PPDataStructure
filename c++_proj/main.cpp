@@ -11,9 +11,10 @@ using namespace std;
 
 BasketsQueue q;
 std::atomic<int> jobsDone;
-int numJobs, numThreads;
+int numJobs, numThreads, numPrepopulate;
 double percentEnq;
 int* randoms;
+localList **localLists;
 
 //Generate an array of randoms
 int* setupRandoms(int numRandoms, double percentEnq)
@@ -32,11 +33,24 @@ int* setupRandoms(int numRandoms, double percentEnq)
   return randomNums;
 }
 
+localList** setupNodes(int numThreads, int numJobs)
+{
+  localList** list = new localList*[numThreads];
+  for (int i = 0; i < numThreads; i++)
+  {
+    list[i] = new localList[numJobs];
+    for(int j = 0; j < numPrepopulate; j++)
+    {
+      list[i]->add(newNode());
+    }
+  }
+  return list;
+}
+
 void *threadWork(void *vargp)
 {
     int currJob = jobsDone++;
     long threadID = (long)vargp;
-    localList* localNodes = new localList;
     node *tempNode;
 
     while(currJob < numJobs)
@@ -44,7 +58,7 @@ void *threadWork(void *vargp)
         if(randoms[currJob] == ENQ)
         {
           //Allocate new node if no nodes exist
-          tempNode = localNodes->remove();
+          tempNode = localLists[threadID]->remove();
           if(tempNode == NULL)//list empty
           {
             tempNode = newNode();
@@ -53,7 +67,7 @@ void *threadWork(void *vargp)
         }
         else
         {
-          q.remove(localNodes);
+          q.remove(localLists[threadID]);
         }
         currJob = jobsDone++;
     }
@@ -63,12 +77,14 @@ void *threadWork(void *vargp)
 // 1 - Number of threads
 // 2 - Number of jobs (total, not per thread, each thread will do an equal number of jobs)
 // 3 - Percent of jobs that are enq (0-1, rest are deqs)
+// 4 - Number of nodes each local list should be pre-populated with
 int main(int argc, char *argv[])
 {
     // //Initialization
     numThreads = atoi(argv[1]);
     numJobs = atoi(argv[2]);
     percentEnq = atof(argv[3]);
+    numPrepopulate = atoi(argv[4]);
     pthread_t threads[numThreads];
 
     //Make threads joinable
@@ -77,15 +93,18 @@ int main(int argc, char *argv[])
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
     randoms = setupRandoms(numJobs, percentEnq);
+    localLists = setupNodes(numThreads, numJobs);
 
     auto start = chrono::steady_clock::now();
 
     //Start work
-    for(int i = 0; i< numThreads; i++)
+    for(int i = 0; i < numThreads; i++)
+    {
       pthread_create(&threads[i], &attr, threadWork, (void *)i );
+    }
 
     //Join and wait for other threads to finish
-    for(int i = 0; i< numThreads; i++)
+    for(int i = 0; i < numThreads; i++)
       pthread_join(threads[i], NULL);
 
     auto end = chrono::steady_clock::now();
